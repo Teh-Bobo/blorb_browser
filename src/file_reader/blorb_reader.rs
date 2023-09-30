@@ -8,6 +8,7 @@ use super::{read_be_u32, FileReadError};
 
 struct FileIndex<'a>(HashMap<BlorbChunkType, HashMap<i32, Chunk<'a>>>);
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct BlorbReader<'a> {
     file_index: FileIndex<'a>,
     // optional_fields_used: Vec<BlorbChunkType>,

@@ -4,7 +4,7 @@ use super::{read_be_u32, BlorbChunkType, FileReadError};
 use std::fmt::{Debug, Display, Formatter};
 use TryInto;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct UlxReader<'a> {
     pub header: GlulxHeader,
     pub debugging_header: GlulxDebuggingHeader,

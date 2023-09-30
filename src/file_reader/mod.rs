@@ -8,6 +8,7 @@ pub mod blorb_chunk_types;
 pub mod blorb_reader;
 pub mod ulx_reader;
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GameType<'a> {
     Ulx(UlxReader<'a>),
     Blorb(BlorbReader<'a>),
