@@ -67,7 +67,7 @@ impl eframe::App for EguiApp {
             .resizable(true)
             .width_range(80.0..=500.0)
             .show(ctx, |ui| {
-                egui::scroll_area::ScrollArea::horizontal().show(ui, |ui| {
+                egui::scroll_area::ScrollArea::both().show(ui, |ui| {
                     ui.vertical(|ui| {
                         egui::CollapsingHeader::new("Games").show(ui, |ui| {
                             match &self.loaded_game {
