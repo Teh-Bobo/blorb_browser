@@ -128,6 +128,14 @@ impl<'a> BlorbReader<'a> {
         bytes.try_into()
     }
 
+    pub fn exec_ids(&'a self) -> Vec<i32> {
+        self.file_index
+            .0
+            .get(&BlorbChunkType::EXECUTABLE)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or(Vec::new())
+    }
+
     pub fn get_exec(&'a self, id: i32) -> Option<UlxReader> {
         let c = self
             .file_index
@@ -138,6 +146,14 @@ impl<'a> BlorbReader<'a> {
             ChunkData::Executable(data) => data.try_into().ok(),
             _ => None,
         }
+    }
+
+    pub fn image_ids(&'a self) -> Vec<i32> {
+        self.file_index
+            .0
+            .get(&BlorbChunkType::PICTURE)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or(Vec::new())
     }
 
     pub fn get_image(&'a self, id: i32) -> Option<&'a Chunk<'a>> {
