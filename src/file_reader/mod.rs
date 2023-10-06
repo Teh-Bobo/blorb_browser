@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fmt::{Display, Formatter};
 
 use blorb_chunk_types::BlorbChunkType;
@@ -48,6 +50,7 @@ pub enum FileReadError {
     UnknownIdentifier(usize),
     InvalidConversion,
     UnknownFileType,
+    UnsupportedOperation,
 }
 
 impl Display for FileReadError {
@@ -71,6 +74,9 @@ impl Display for FileReadError {
             }
             FileReadError::UnknownFileType => {
                 write!(f, "A file was supplied but did not fit a known file type")
+            }
+            FileReadError::UnsupportedOperation => {
+                write!(f, "An unsupported chunk type tried to be read")
             }
         }
     }

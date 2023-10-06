@@ -1,6 +1,5 @@
 mod file_reader;
 
-use crate::file_reader::blorb_reader::ChunkData;
 use crate::file_reader::GameType;
 use eframe::egui::{ColorImage, Context, TextureHandle};
 use eframe::{egui, Frame};
@@ -31,7 +30,7 @@ impl EguiApp {
         ctx.egui_ctx.set_visuals(egui::Visuals::dark());
         egui_extras::install_image_loaders(&ctx.egui_ctx);
 
-        let game_path = "test_games/imagetest.gblorb";
+        let game_path = "test_games/sensory.blb";
         let bytes: &'static [u8] = std::fs::read(game_path)
             .expect("Unable to open specified path")
             .leak();
@@ -90,21 +89,31 @@ impl eframe::App for EguiApp {
                                     ids.sort();
                                     ids.iter().for_each(|&id| {
                                         if ui.button(format!("{id}")).clicked() {
-
-                                            let handle = self.loaded_images.entry(id).or_insert_with(|| {
-                                                let ChunkData::Picture(picture_bytes) = b.get_image(id).unwrap().data else {
-                                                    panic!("Failed to pre-load image id: {id}");
-                                                };
-                                                let image = image::load_from_memory(picture_bytes).expect("Chunk provided invalid image");
-                                                let size = [image.width() as _, image.height() as _];
-                                                let image_buffer = image.to_rgba8();
-                                                let pixels = image_buffer.as_flat_samples();
-                                                let picture = ColorImage::from_rgba_unmultiplied(
-                                                    size,
-                                                    pixels.as_slice(),
-                                                );
-                                                ctx.load_texture("", picture, Default::default())
-                                            }).clone();
+                                            let handle = self
+                                                .loaded_images
+                                                .entry(id)
+                                                .or_insert_with(|| {
+                                                    let picture_bytes =
+                                                        b.get_image(id).unwrap().data;
+                                                    let image =
+                                                        image::load_from_memory(picture_bytes)
+                                                            .expect("Chunk provided invalid image");
+                                                    let size =
+                                                        [image.width() as _, image.height() as _];
+                                                    let image_buffer = image.to_rgba8();
+                                                    let pixels = image_buffer.as_flat_samples();
+                                                    let picture =
+                                                        ColorImage::from_rgba_unmultiplied(
+                                                            size,
+                                                            pixels.as_slice(),
+                                                        );
+                                                    ctx.load_texture(
+                                                        "",
+                                                        picture,
+                                                        Default::default(),
+                                                    )
+                                                })
+                                                .clone();
 
                                             self.main_draw = Box::new(move |ui| {
                                                 let sa = egui::scroll_area::ScrollArea::both();

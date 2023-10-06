@@ -28,14 +28,9 @@ impl Display for BlorbReader<'_> {
     }
 }
 
-pub enum ChunkData<'a> {
-    Executable(&'a [u8]),
-    Picture(&'a [u8]),
-}
-
 pub struct Chunk<'a> {
     pub chunk_type: BlorbChunkType,
-    pub data: ChunkData<'a>,
+    pub data: &'a [u8],
 }
 
 impl<'a> TryFrom<&'a [u8]> for Chunk<'a> {
@@ -49,10 +44,13 @@ impl<'a> TryFrom<&'a [u8]> for Chunk<'a> {
         let len = read_be_u32(&value[4..8]);
         let data = match chunk_type {
             BlorbChunkType::PICTURE_PNG | BlorbChunkType::PICTURE_JPEG => {
-                ChunkData::Picture(&value[8..][..(len as usize)])
+                &value[8..][..(len as usize)]
             }
-            BlorbChunkType::EXEC_GLUL => ChunkData::Executable(&value[8..][..(len as usize)]),
-            _ => return Err(FileReadError::InvalidConversion),
+            BlorbChunkType::EXEC_GLUL => &value[8..][..(len as usize)],
+            BlorbChunkType::SOUND | BlorbChunkType::SOUND_MOD | BlorbChunkType::SOUND_SONG => {
+                return Err(FileReadError::UnsupportedOperation)
+            }
+            _ => panic!("Unsupported chunk type: {chunk_type:?}"),
         };
         Ok(Chunk { chunk_type, data })
     }
@@ -142,10 +140,7 @@ impl<'a> BlorbReader<'a> {
             .0
             .get(&BlorbChunkType::EXECUTABLE)?
             .get(&id)?;
-        match c.data {
-            ChunkData::Executable(data) => data.try_into().ok(),
-            _ => None,
-        }
+        c.data.try_into().ok()
     }
 
     pub fn image_ids(&'a self) -> Vec<i32> {
@@ -163,7 +158,7 @@ impl<'a> BlorbReader<'a> {
             .and_then(|hm| hm.get(&id))
     }
 
-    pub fn get(&'a self, chunk_type: BlorbChunkType, id: i32) -> Option<&'a ChunkData<'a>> {
+    pub fn get(&'a self, chunk_type: BlorbChunkType, id: i32) -> Option<&'a [u8]> {
         Some(&self.file_index.0.get(&chunk_type)?.get(&id)?.data)
     }
 }
