@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/blorb_analyzer.iml" filepath="$PROJECT_DIR$/.idea/blorb_analyzer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/blorb_browser.iml" filepath="$PROJECT_DIR$/.idea/blorb_browser.iml" />
     </modules>
   </component>
 </project>

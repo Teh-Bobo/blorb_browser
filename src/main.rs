@@ -90,7 +90,6 @@ impl eframe::App for EguiApp {
                                     ids.sort();
                                     ids.iter().for_each(|&id| {
                                         if ui.button(format!("{id}")).clicked() {
-                                            eprintln!("{id} double clicked!");
 
                                             let handle = self.loaded_images.entry(id).or_insert_with(|| {
                                                 let ChunkData::Picture(picture_bytes) = b.get_image(id).unwrap().data else {
