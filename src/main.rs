@@ -5,8 +5,11 @@ use crate::file_reader::GameType;
 use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
 use eframe::{egui, Frame};
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
+use strum::IntoEnumIterator;
 
 struct EguiApp {
+    current_menu: Menus,
     current_tab: Tabs,
     loaded_game: Option<GameType<'static>>,
     main_draw: Box<dyn Fn(&mut Ui)>,
@@ -16,6 +19,7 @@ struct EguiApp {
 impl Default for EguiApp {
     fn default() -> Self {
         Self {
+            current_menu: Default::default(),
             current_tab: Default::default(),
             loaded_game: None,
             main_draw: Box::new(|ui: &mut Ui| {
@@ -64,13 +68,46 @@ impl EguiApp {
             }
         }
     }
+
+    fn draw_menu_from_enum<I, D>(ui: &mut Ui, current_option: &mut D, options: I)
+    where
+        I: Iterator<Item = D>,
+        D: Display + Eq + Copy,
+    {
+        ui.horizontal(|ui| {
+            options.for_each(|o| {
+                ui.selectable_value(current_option, o, o.to_string());
+            });
+        });
+    }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
-enum Tabs {
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, strum_macros::EnumIter)]
+enum Menus {
     #[default]
     File,
     Help,
+}
+
+impl Display for Menus {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, strum_macros::EnumIter)]
+enum Tabs {
+    #[default]
+    Games,
+    Images,
+    Sounds,
+    Strings,
+}
+
+impl Display for Tabs {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
 }
 
 impl eframe::App for EguiApp {
@@ -78,10 +115,10 @@ impl eframe::App for EguiApp {
         egui::TopBottomPanel::top("menu_bar")
             .resizable(false)
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.selectable_value(&mut self.current_tab, Tabs::File, "File");
-                    ui.selectable_value(&mut self.current_tab, Tabs::Help, "Help");
-                });
+                ui.vertical(|ui| {
+                    EguiApp::draw_menu_from_enum(ui, &mut self.current_menu, Menus::iter());
+                    EguiApp::draw_menu_from_enum(ui, &mut self.current_tab, Tabs::iter());
+                })
             });
         egui::SidePanel::left("file_explorer")
             .resizable(true)
@@ -143,7 +180,10 @@ impl eframe::App for EguiApp {
                                             self.main_draw = Box::new(move |ui| {
                                                 let sa = egui::scroll_area::ScrollArea::both();
                                                 sa.show(ui, |ui| {
-                                                    ui.image((handle.id(), handle.size_vec2()));
+                                                    ui.image((
+                                                        handle.id(),
+                                                        ui.available_size_before_wrap(),
+                                                    ));
                                                 });
                                             });
                                         }

@@ -7,3 +7,5 @@ edition = "2021"
 eframe = "0.23.0"
 egui_extras = { version = "*", features = ["all_loaders"] }
 image = { version = "0.24", features = ["jpeg", "png"] }
+strum = "0.25"
+strum_macros = "0.25"
