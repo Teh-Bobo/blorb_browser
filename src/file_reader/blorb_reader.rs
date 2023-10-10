@@ -42,16 +42,7 @@ impl<'a> TryFrom<&'a [u8]> for Chunk<'a> {
         }
         let chunk_type = read_be_u32(&value[..4]).try_into()?;
         let len = read_be_u32(&value[4..8]);
-        let data = match chunk_type {
-            BlorbChunkType::PICTURE_PNG | BlorbChunkType::PICTURE_JPEG => {
-                &value[8..][..(len as usize)]
-            }
-            BlorbChunkType::EXEC_GLUL => &value[8..][..(len as usize)],
-            BlorbChunkType::SOUND | BlorbChunkType::SOUND_MOD | BlorbChunkType::SOUND_SONG => {
-                return Err(FileReadError::UnsupportedOperation)
-            }
-            _ => panic!("Unsupported chunk type: {chunk_type:?}"),
-        };
+        let data = &value[8..][..(len as usize)];
         Ok(Chunk { chunk_type, data })
     }
 }
@@ -156,6 +147,22 @@ impl<'a> BlorbReader<'a> {
             .0
             .get(&BlorbChunkType::PICTURE)
             .and_then(|hm| hm.get(&id))
+    }
+
+    pub fn sound_ids(&'a self) -> Vec<i32> {
+        self.file_index
+            .0
+            .get(&BlorbChunkType::SOUND)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or(Vec::new())
+    }
+
+    pub fn get_ids(&self, chunk_type: BlorbChunkType) -> Vec<i32> {
+        self.file_index
+            .0
+            .get(&chunk_type)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or(Vec::new())
     }
 
     pub fn get(&'a self, chunk_type: BlorbChunkType, id: i32) -> Option<&'a [u8]> {

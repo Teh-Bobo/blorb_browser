@@ -1,14 +1,15 @@
 mod file_reader;
 
+use crate::file_reader::blorb_chunk_types::BlorbChunkType;
 use crate::file_reader::GameType;
-use eframe::egui::{ColorImage, Context, TextureHandle};
+use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
 use eframe::{egui, Frame};
 use std::collections::HashMap;
 
 struct EguiApp {
     current_tab: Tabs,
     loaded_game: Option<GameType<'static>>,
-    main_draw: Box<dyn Fn(&mut egui::Ui)>,
+    main_draw: Box<dyn Fn(&mut Ui)>,
     loaded_images: HashMap<i32, TextureHandle>,
 }
 
@@ -17,7 +18,7 @@ impl Default for EguiApp {
         Self {
             current_tab: Default::default(),
             loaded_game: None,
-            main_draw: Box::new(|ui: &mut egui::Ui| {
+            main_draw: Box::new(|ui: &mut Ui| {
                 ui.heading("Windows");
             }),
             loaded_images: Default::default(),
@@ -43,6 +44,26 @@ impl EguiApp {
             ..self
         }
     }
+
+    fn draw_sound_sub_header(
+        &mut self,
+        ui: &mut Ui,
+        chunk_type: BlorbChunkType,
+        heading: impl Into<WidgetText>,
+    ) {
+        if let Some(GameType::Blorb(b)) = &self.loaded_game {
+            let mut ids = b.get_ids(chunk_type);
+            ids.sort();
+
+            if !ids.is_empty() {
+                egui::CollapsingHeader::new(heading).show(ui, |ui| {
+                    ids.iter().for_each(|id| {
+                        ui.label(format!("{id}"));
+                    });
+                });
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
@@ -66,7 +87,7 @@ impl eframe::App for EguiApp {
             .resizable(true)
             .width_range(80.0..=500.0)
             .show(ctx, |ui| {
-                egui::scroll_area::ScrollArea::both().show(ui, |ui| {
+                egui::scroll_area::ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical(|ui| {
                         egui::CollapsingHeader::new("Games").show(ui, |ui| {
                             match &self.loaded_game {
@@ -81,7 +102,11 @@ impl eframe::App for EguiApp {
                                 _ => {}
                             }
                         });
-                        egui::CollapsingHeader::new("Sounds").show(ui, |_ui| {});
+                        egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
+                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND, "Sound");
+                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
+                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_SONG, "Songs");
+                        });
                         egui::CollapsingHeader::new("Images").show(ui, |ui| {
                             match &self.loaded_game {
                                 Some(GameType::Blorb(b)) => {
@@ -141,7 +166,7 @@ fn main() {
     let app = EguiApp::default();
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "gluxrs",
+        "Blorb Browser",
         native_options,
         Box::new(|cc| Box::new(app.setup(cc))),
     )
