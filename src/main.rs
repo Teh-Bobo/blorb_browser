@@ -8,26 +8,13 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use strum::IntoEnumIterator;
 
+#[derive(Default)]
 struct EguiApp {
     current_menu: Menus,
     current_tab: Tabs,
     loaded_game: Option<GameType<'static>>,
-    main_draw: Box<dyn Fn(&mut Ui)>,
     loaded_images: HashMap<i32, TextureHandle>,
-}
-
-impl Default for EguiApp {
-    fn default() -> Self {
-        Self {
-            current_menu: Default::default(),
-            current_tab: Default::default(),
-            loaded_game: None,
-            main_draw: Box::new(|ui: &mut Ui| {
-                ui.heading("Windows");
-            }),
-            loaded_images: Default::default(),
-        }
-    }
+    image_tab_data: ImageTabData,
 }
 
 impl EguiApp {
@@ -49,6 +36,82 @@ impl EguiApp {
         }
     }
 
+    fn draw_current_tab(&mut self, ui: &mut Ui) {
+        match self.current_tab {
+            Tabs::Games => self.draw_games_tab(ui),
+            Tabs::Images => self.draw_images_tab(ui),
+            Tabs::Sounds => self.draw_sound_tab(ui),
+            Tabs::Strings => self.draw_strings_tab(ui),
+        }
+    }
+
+    fn draw_games_tab(&mut self, ui: &mut Ui) {
+        egui::SidePanel::left("game_options").show_inside(ui, |ui| match &self.loaded_game {
+            Some(GameType::Ulx(_)) => {
+                ui.label("0");
+            }
+            Some(GameType::Blorb(b)) => {
+                b.exec_ids().iter().for_each(|id| {
+                    ui.label(format!("{id}"));
+                });
+            }
+            _ => {}
+        });
+        egui::CentralPanel::default().show_inside(ui, |_ui| {
+            //TODO
+        });
+    }
+
+    fn draw_images_tab(&mut self, ui: &mut Ui) {
+        egui::SidePanel::left("image_options").show_inside(ui, |ui| {
+            if let Some(GameType::Blorb(b)) = &self.loaded_game {
+                let mut ids = b.image_ids();
+                ids.sort();
+                ids.iter()
+                    .find(|&&id| ui.button(format!("{id}")).clicked())
+                    .map(|&id| {
+                        self.image_tab_data.selected_image = Some(
+                            self.loaded_images
+                                .entry(id)
+                                .or_insert_with(|| {
+                                    let picture_bytes = b.get_image(id).unwrap().data;
+                                    let image = image::load_from_memory(picture_bytes)
+                                        .expect("Chunk provided invalid image");
+                                    let size = [image.width() as _, image.height() as _];
+                                    let image_buffer = image.to_rgba8();
+                                    let pixels = image_buffer.as_flat_samples();
+                                    let picture =
+                                        ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+                                    ui.ctx().load_texture("", picture, Default::default())
+                                })
+                                .clone(),
+                        )
+                    });
+            }
+        });
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            let sa = egui::scroll_area::ScrollArea::both();
+            sa.show(ui, |ui| {
+                if let Some(handle) = &self.image_tab_data.selected_image {
+                    ui.image((handle.id(), ui.available_size_before_wrap()));
+                }
+            });
+        });
+    }
+
+    fn draw_sound_tab(&mut self, ui: &mut Ui) {
+        egui::SidePanel::left("sound_options").show_inside(ui, |ui| {
+            egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
+                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND, "Sound");
+                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
+                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_SONG, "Songs");
+            });
+        });
+        egui::CentralPanel::default().show_inside(ui, |_ui| {
+            //TODO
+        });
+    }
+
     fn draw_sound_sub_header(
         &mut self,
         ui: &mut Ui,
@@ -67,6 +130,13 @@ impl EguiApp {
                 });
             }
         }
+    }
+
+    fn draw_strings_tab(&mut self, ui: &mut Ui) {
+        egui::SidePanel::left("strings_options").show_inside(ui, |_ui| {});
+        egui::CentralPanel::default().show_inside(ui, |_ui| {
+            //TODO
+        });
     }
 
     fn draw_menu_from_enum<I, D>(ui: &mut Ui, current_option: &mut D, options: I)
@@ -110,6 +180,11 @@ impl Display for Tabs {
     }
 }
 
+#[derive(Clone, Default, Eq, PartialEq, Hash)]
+struct ImageTabData {
+    selected_image: Option<TextureHandle>,
+}
+
 impl eframe::App for EguiApp {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
         egui::TopBottomPanel::top("menu_bar")
@@ -120,84 +195,8 @@ impl eframe::App for EguiApp {
                     EguiApp::draw_menu_from_enum(ui, &mut self.current_tab, Tabs::iter());
                 })
             });
-        egui::SidePanel::left("file_explorer")
-            .resizable(true)
-            .width_range(80.0..=500.0)
-            .show(ctx, |ui| {
-                egui::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-                    ui.vertical(|ui| {
-                        egui::CollapsingHeader::new("Games").show(ui, |ui| {
-                            match &self.loaded_game {
-                                Some(GameType::Ulx(_)) => {
-                                    ui.label("0");
-                                }
-                                Some(GameType::Blorb(b)) => {
-                                    b.exec_ids().iter().for_each(|id| {
-                                        ui.label(format!("{id}"));
-                                    });
-                                }
-                                _ => {}
-                            }
-                        });
-                        egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
-                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND, "Sound");
-                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
-                            self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_SONG, "Songs");
-                        });
-                        egui::CollapsingHeader::new("Images").show(ui, |ui| {
-                            match &self.loaded_game {
-                                Some(GameType::Blorb(b)) => {
-                                    let mut ids = b.image_ids();
-                                    ids.sort();
-                                    ids.iter().for_each(|&id| {
-                                        if ui.button(format!("{id}")).clicked() {
-                                            let handle = self
-                                                .loaded_images
-                                                .entry(id)
-                                                .or_insert_with(|| {
-                                                    let picture_bytes =
-                                                        b.get_image(id).unwrap().data;
-                                                    let image =
-                                                        image::load_from_memory(picture_bytes)
-                                                            .expect("Chunk provided invalid image");
-                                                    let size =
-                                                        [image.width() as _, image.height() as _];
-                                                    let image_buffer = image.to_rgba8();
-                                                    let pixels = image_buffer.as_flat_samples();
-                                                    let picture =
-                                                        ColorImage::from_rgba_unmultiplied(
-                                                            size,
-                                                            pixels.as_slice(),
-                                                        );
-                                                    ctx.load_texture(
-                                                        "",
-                                                        picture,
-                                                        Default::default(),
-                                                    )
-                                                })
-                                                .clone();
-
-                                            self.main_draw = Box::new(move |ui| {
-                                                let sa = egui::scroll_area::ScrollArea::both();
-                                                sa.show(ui, |ui| {
-                                                    ui.image((
-                                                        handle.id(),
-                                                        ui.available_size_before_wrap(),
-                                                    ));
-                                                });
-                                            });
-                                        }
-                                    });
-                                }
-                                _ => {}
-                            }
-                        });
-                        egui::CollapsingHeader::new("Strings").show(ui, |_ui| {});
-                    });
-                });
-            });
         egui::CentralPanel::default().show(ctx, |ui| {
-            (self.main_draw)(ui);
+            self.draw_current_tab(ui);
         });
     }
 }
