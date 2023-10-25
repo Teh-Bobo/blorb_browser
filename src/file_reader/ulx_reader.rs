@@ -118,14 +118,15 @@ impl Display for GlulxDebuggingHeader {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!(
             "GlulDebuggingHeader {{ id: {}, memory_layout: {}, \
-        inform_version: {}, glulx_compiler_version: {}, game_version: {}, game_serial_number: {:?} \
+        inform_version: {}, glulx_compiler_version: {}, game_version: {}, game_serial_number: {:?} (\"{}\") \
         }}",
             String::from_utf8_lossy(&self.id.to_be_bytes()),
             self.memory_layout,
             String::from_utf8_lossy(&self.inform_version.to_be_bytes()),
             String::from_utf8_lossy(&self.glulx_compiler_version.to_be_bytes()),
             self.game_version,
-            self.game_serial_number
+            self.game_serial_number,
+            String::from_utf8_lossy(&self.game_serial_number)
         ))
     }
 }

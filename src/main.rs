@@ -46,19 +46,18 @@ impl EguiApp {
     }
 
     fn draw_games_tab(&mut self, ui: &mut Ui) {
-        egui::SidePanel::left("game_options").show_inside(ui, |ui| match &self.loaded_game {
-            Some(GameType::Ulx(_)) => {
-                ui.label("0");
-            }
-            Some(GameType::Blorb(b)) => {
-                b.exec_ids().iter().for_each(|id| {
-                    ui.label(format!("{id}"));
-                });
-            }
-            _ => {}
-        });
-        egui::CentralPanel::default().show_inside(ui, |_ui| {
-            //TODO
+        let game = match &self.loaded_game {
+            Some(GameType::Blorb(b)) => b.get_exec(0).expect("Blorb had no games"),
+            Some(GameType::Ulx(u)) => u.clone(),
+            None => panic!("Tried to draw the game tab without loaded game"),
+        };
+        egui::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+            ui.vertical(|ui| {
+                ui.heading("Game Header");
+                ui.label(game.header.to_string());
+                ui.heading("Debugging Header");
+                ui.label(game.debugging_header.to_string());
+            });
         });
     }
 
