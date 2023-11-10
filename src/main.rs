@@ -1,6 +1,9 @@
 mod file_reader;
+mod strings;
 
 use crate::file_reader::blorb_chunk_types::BlorbChunkType;
+use crate::file_reader::blorb_reader::BlorbReader;
+use crate::file_reader::ulx_reader::ParsedString;
 use crate::file_reader::GameType;
 use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
 use eframe::{egui, Frame};
@@ -15,6 +18,7 @@ struct EguiApp {
     loaded_game: Option<GameType<'static>>,
     loaded_images: HashMap<i32, TextureHandle>,
     image_tab_data: ImageTabData,
+    parsed_strings: Option<Vec<ParsedString>>,
 }
 
 impl EguiApp {
@@ -22,7 +26,7 @@ impl EguiApp {
         ctx.egui_ctx.set_visuals(egui::Visuals::dark());
         egui_extras::install_image_loaders(&ctx.egui_ctx);
 
-        let game_path = "test_games/sensory.blb";
+        let game_path = "test_games/glulxercise.ulx";
         let bytes: &'static [u8] = std::fs::read(game_path)
             .expect("Unable to open specified path")
             .leak();
@@ -99,25 +103,12 @@ impl EguiApp {
     }
 
     fn draw_sound_tab(&mut self, ui: &mut Ui) {
-        egui::SidePanel::left("sound_options").show_inside(ui, |ui| {
-            egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
-                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND, "Sound");
-                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
-                self.draw_sound_sub_header(ui, BlorbChunkType::SOUND_SONG, "Songs");
-            });
-        });
-        egui::CentralPanel::default().show_inside(ui, |_ui| {
-            //TODO
-        });
-    }
-
-    fn draw_sound_sub_header(
-        &mut self,
-        ui: &mut Ui,
-        chunk_type: BlorbChunkType,
-        heading: impl Into<WidgetText>,
-    ) {
-        if let Some(GameType::Blorb(b)) = &self.loaded_game {
+        fn draw_sub_header(
+            b: &BlorbReader,
+            ui: &mut Ui,
+            chunk_type: BlorbChunkType,
+            heading: impl Into<WidgetText>,
+        ) {
             let mut ids = b.get_ids(chunk_type);
             ids.sort();
 
@@ -129,9 +120,28 @@ impl EguiApp {
                 });
             }
         }
+
+        egui::SidePanel::left("sound_options").show_inside(ui, |ui| {
+            egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
+                if let Some(GameType::Blorb(b)) = &self.loaded_game {
+                    draw_sub_header(b, ui, BlorbChunkType::SOUND, "Sound");
+                    draw_sub_header(b, ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
+                    draw_sub_header(b, ui, BlorbChunkType::SOUND_SONG, "Songs");
+                }
+            });
+        });
+        egui::CentralPanel::default().show_inside(ui, |_ui| {
+            //TODO
+        });
     }
 
     fn draw_strings_tab(&mut self, ui: &mut Ui) {
+        if self.parsed_strings.is_none() && self.loaded_game.is_some() {
+            self.parsed_strings = Some(match self.loaded_game.as_ref().unwrap() {
+                GameType::Ulx(game) => game.parse_strings(),
+                GameType::Blorb(game) => game.get_exec(0).unwrap().parse_strings(),
+            })
+        }
         egui::SidePanel::left("strings_options").show_inside(ui, |_ui| {});
         egui::CentralPanel::default().show_inside(ui, |_ui| {
             //TODO

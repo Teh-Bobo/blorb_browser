@@ -1,6 +1,7 @@
 use super::BlorbChunkType::EXEC_GLUL;
 use super::FileReadError::UnexpectedStartingIdentifier;
 use super::{read_be_u32, BlorbChunkType, FileReadError};
+use crate::strings::StringTypes;
 use std::fmt::{Debug, Display, Formatter};
 use TryInto;
 
@@ -23,6 +24,33 @@ impl<'a> TryFrom<&'a [u8]> for UlxReader<'a> {
             debugging_header,
             memory,
         })
+    }
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub(crate) struct ParsedString {
+    pub(crate) data: String,
+    pub(crate) start_address: usize,
+    pub(crate) string_type: StringTypes,
+}
+
+impl<'a> UlxReader<'a> {
+    pub(crate) fn parse_strings(&self) -> Vec<ParsedString> {
+        let mut ret = Vec::new();
+        for i in 0..self.memory.len() {
+            if let Ok(string_type) = StringTypes::try_from(self.memory[i]) {
+                let data = string_type.parse(&self.memory[i + 1..]);
+                if !data.is_empty() {
+                    ret.push(ParsedString {
+                        data,
+                        start_address: i,
+                        string_type,
+                    })
+                }
+            }
+        }
+        ret.iter().for_each(|ps| println!("{ps:?}"));
+        ret
     }
 }
 
