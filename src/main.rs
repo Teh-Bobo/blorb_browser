@@ -66,33 +66,44 @@ impl EguiApp {
     }
 
     fn draw_images_tab(&mut self, ui: &mut Ui) {
-        egui::SidePanel::left("image_options").show_inside(ui, |ui| {
-            if let Some(GameType::Blorb(b)) = &self.loaded_game {
-                let mut ids = b.image_ids();
-                ids.sort();
-                ids.iter()
-                    .find(|&&id| ui.button(format!("{id}")).clicked())
-                    .map(|&id| {
-                        self.image_tab_data.selected_image = Some(
-                            self.loaded_images
-                                .entry(id)
-                                .or_insert_with(|| {
-                                    let picture_bytes = b.get_image(id).unwrap().data;
-                                    let image = image::load_from_memory(picture_bytes)
-                                        .expect("Chunk provided invalid image");
-                                    let size = [image.width() as _, image.height() as _];
-                                    let image_buffer = image.to_rgba8();
-                                    let pixels = image_buffer.as_flat_samples();
-                                    let picture =
-                                        ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
-                                    ui.ctx().load_texture("", picture, Default::default())
-                                })
-                                .clone(),
-                        )
-                    });
-            }
-        });
+        let count = egui::SidePanel::left("image_options")
+            .show_inside(ui, |ui| {
+                if let Some(GameType::Blorb(b)) = &self.loaded_game {
+                    let mut ids = b.image_ids();
+                    ids.sort();
+                    ids.iter()
+                        .find(|&&id| ui.button(format!("{id}")).clicked())
+                        .map(|&id| {
+                            self.image_tab_data.selected_image = Some(
+                                self.loaded_images
+                                    .entry(id)
+                                    .or_insert_with(|| {
+                                        let picture_bytes = b.get_image(id).unwrap().data;
+                                        let image = image::load_from_memory(picture_bytes)
+                                            .expect("Chunk provided invalid image");
+                                        let size = [image.width() as _, image.height() as _];
+                                        let image_buffer = image.to_rgba8();
+                                        let pixels = image_buffer.as_flat_samples();
+                                        let picture = ColorImage::from_rgba_unmultiplied(
+                                            size,
+                                            pixels.as_slice(),
+                                        );
+                                        ui.ctx().load_texture("", picture, Default::default())
+                                    })
+                                    .clone(),
+                            )
+                        });
+                    ids.len()
+                } else {
+                    0
+                }
+            })
+            .inner;
         egui::CentralPanel::default().show_inside(ui, |ui| {
+            if count == 0 {
+                ui.heading("No images found in this game file");
+                return;
+            }
             let sa = egui::scroll_area::ScrollArea::both();
             sa.show(ui, |ui| {
                 if let Some(handle) = &self.image_tab_data.selected_image {
@@ -108,7 +119,7 @@ impl EguiApp {
             ui: &mut Ui,
             chunk_type: BlorbChunkType,
             heading: impl Into<WidgetText>,
-        ) {
+        ) -> usize {
             let mut ids = b.get_ids(chunk_type);
             ids.sort();
 
@@ -119,18 +130,26 @@ impl EguiApp {
                     });
                 });
             }
+
+            ids.len()
         }
 
-        egui::SidePanel::left("sound_options").show_inside(ui, |ui| {
-            egui::CollapsingHeader::new("Sounds").show(ui, |ui| {
+        let count = egui::SidePanel::left("sound_options")
+            .show_inside(ui, |ui| {
                 if let Some(GameType::Blorb(b)) = &self.loaded_game {
-                    draw_sub_header(b, ui, BlorbChunkType::SOUND, "Sound");
-                    draw_sub_header(b, ui, BlorbChunkType::SOUND_MOD, "MOD Sounds");
-                    draw_sub_header(b, ui, BlorbChunkType::SOUND_SONG, "Songs");
+                    draw_sub_header(b, ui, BlorbChunkType::SOUND, "Sound")
+                        + draw_sub_header(b, ui, BlorbChunkType::SOUND_MOD, "MOD Sounds")
+                        + draw_sub_header(b, ui, BlorbChunkType::SOUND_SONG, "Songs")
+                } else {
+                    0
                 }
-            });
-        });
-        egui::CentralPanel::default().show_inside(ui, |_ui| {
+            })
+            .inner;
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            if count == 0 {
+                ui.heading("No sounds found in this game file");
+                return;
+            }
             //TODO
         });
     }
