@@ -1,9 +1,11 @@
+use std::fmt::{Debug, Display, Formatter};
+use TryInto;
+
+use crate::strings::StringTypes;
+
 use super::BlorbChunkType::EXEC_GLUL;
 use super::FileReadError::UnexpectedStartingIdentifier;
 use super::{read_be_u32, BlorbChunkType, FileReadError};
-use crate::strings::StringTypes;
-use std::fmt::{Debug, Display, Formatter};
-use TryInto;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct UlxReader<'a> {
@@ -49,7 +51,6 @@ impl<'a> UlxReader<'a> {
                 }
             }
         }
-        ret.iter().for_each(|ps| println!("{ps:?}"));
         ret
     }
 }

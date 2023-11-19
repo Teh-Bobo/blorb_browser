@@ -1,15 +1,18 @@
-mod file_reader;
-mod strings;
+use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
+
+use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
+use eframe::{egui, Frame};
+use egui_extras::Column;
+use strum::IntoEnumIterator;
 
 use crate::file_reader::blorb_chunk_types::BlorbChunkType;
 use crate::file_reader::blorb_reader::BlorbReader;
 use crate::file_reader::ulx_reader::ParsedString;
 use crate::file_reader::GameType;
-use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
-use eframe::{egui, Frame};
-use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
-use strum::IntoEnumIterator;
+
+mod file_reader;
+mod strings;
 
 #[derive(Default)]
 struct EguiApp {
@@ -155,15 +158,40 @@ impl EguiApp {
     }
 
     fn draw_strings_tab(&mut self, ui: &mut Ui) {
-        if self.parsed_strings.is_none() && self.loaded_game.is_some() {
-            self.parsed_strings = Some(match self.loaded_game.as_ref().unwrap() {
-                GameType::Ulx(game) => game.parse_strings(),
-                GameType::Blorb(game) => game.get_exec(0).unwrap().parse_strings(),
-            })
-        }
-        egui::SidePanel::left("strings_options").show_inside(ui, |_ui| {});
-        egui::CentralPanel::default().show_inside(ui, |_ui| {
-            //TODO
+        let strings =
+            self.parsed_strings
+                .get_or_insert_with(|| match self.loaded_game.as_ref().unwrap() {
+                    GameType::Ulx(game) => game.parse_strings(),
+                    GameType::Blorb(game) => game.get_exec(0).unwrap().parse_strings(),
+                });
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            egui_extras::TableBuilder::new(ui)
+                .columns(Column::auto(), 2)
+                .column(Column::remainder())
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.heading("Type");
+                    });
+                    header.col(|ui| {
+                        ui.heading("Address");
+                    });
+                    header.col(|ui| {
+                        ui.heading("String");
+                    });
+                })
+                .body(|body| {
+                    body.rows(18.0, strings.len(), |row_index, mut row| {
+                        row.col(|ui| {
+                            ui.label(format!("{:?}", strings[row_index].string_type));
+                        });
+                        row.col(|ui| {
+                            ui.label(format!("{}", strings[row_index].start_address));
+                        });
+                        row.col(|ui| {
+                            ui.label(format!("{:?}", strings[row_index].data));
+                        });
+                    });
+                });
         });
     }
 
