@@ -1,7 +1,8 @@
+use crate::egui::Ui;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
-use eframe::egui::{ColorImage, Context, TextureHandle, Ui, WidgetText};
+use eframe::egui::{ColorImage, Context, TextureHandle, WidgetText};
 use eframe::{egui, Frame};
 use egui_extras::Column;
 use strum::IntoEnumIterator;
@@ -180,7 +181,8 @@ impl EguiApp {
                     });
                 })
                 .body(|body| {
-                    body.rows(18.0, strings.len(), |row_index, mut row| {
+                    body.rows(18.0, strings.len(), |mut row| {
+                        let row_index = row.index();
                         row.col(|ui| {
                             ui.label(format!("{:?}", strings[row_index].string_type));
                         });
