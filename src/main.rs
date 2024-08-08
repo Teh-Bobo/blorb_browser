@@ -265,7 +265,7 @@ fn main() {
     eframe::run_native(
         "Blorb Browser",
         native_options,
-        Box::new(|cc| Box::new(app.setup(cc))),
+        Box::new(|cc|Ok(Box::new(app.setup(cc)))),
     )
     .expect("Unable to load eframe");
 }
