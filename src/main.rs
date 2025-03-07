@@ -199,7 +199,7 @@ impl EguiApp {
 
     fn draw_menu_from_enum<I, D>(ui: &mut Ui, current_option: &mut D, options: I)
     where
-        I: Iterator<Item = D>,
+        I: Iterator<Item=D>,
         D: Display + Eq + Copy,
     {
         ui.horizontal(|ui| {
@@ -265,7 +265,7 @@ fn main() {
     eframe::run_native(
         "Blorb Browser",
         native_options,
-        Box::new(|cc|Ok(Box::new(app.setup(cc)))),
+        Box::new(|cc| Ok(Box::new(app.setup(cc)))),
     )
-    .expect("Unable to load eframe");
+        .expect("Unable to load eframe");
 }
