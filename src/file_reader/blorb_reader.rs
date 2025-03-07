@@ -125,7 +125,7 @@ impl<'a> BlorbReader<'a> {
             .unwrap_or(Vec::new())
     }
 
-    pub fn get_exec(&'a self, id: i32) -> Option<UlxReader> {
+    pub fn get_exec(&'a self, id: i32) -> Option<UlxReader<'a>> {
         let c = self
             .file_index
             .0

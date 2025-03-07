@@ -30,7 +30,7 @@ impl EguiApp {
         ctx.egui_ctx.set_visuals(egui::Visuals::dark());
         egui_extras::install_image_loaders(&ctx.egui_ctx);
 
-        let game_path = "test_games/glulxercise.ulx";
+        let game_path = "test_games/imagetest.gblorb";
         let bytes: &'static [u8] = std::fs::read(game_path)
             .expect("Unable to open specified path")
             .leak();
